@@ -1,0 +1,88 @@
+
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(ggpol)
+library(RColorBrewer)
+library(ggpubr)
+library(waffle)
+library(tm)
+library(readxl)
+library(ggpol)
+library(gtable)
+library(grid)
+library(ggh4x)
+library(ggtext)
+library(stringr)
+library(scales)
+
+
+# THIS IS A TEMPLATE , you will need to change it accordingly and make sure that your data is properly cleaned and re-arranged
+# List of questions you want to iterate over
+list_questions <- c("Q9", "Q11", "Q12", "Q13")  # Add other questions here (remember, R does not like weird text)
+#  janitor that makes cleaning up column names very simple. It removes all unique characters and replaces spaces with _.
+library(janitor)
+#can be done by simply
+d <- clean_names(d)
+
+
+# Loop over each question
+for (response in questions) {
+  
+  # Dynamically set the column name and question text
+  question_text <- paste0("d_YN3$", response)
+  question_label <- colnames(d_YN3)[grepl(response, colnames(d_YN4))]
+  
+  # Prepare the data
+  d_filtered <- d %>%
+    filter(!is.na(!!sym(response))) %>% #get rid of NAs in responses, sym() take strings as input and turn them into symbols.
+    filter(!is.na(Region)) %>%  #get rid of NAs in the region (ie. your group factor)
+    filter(!!sym(response) != "Don't know") %>% 
+    group_by_at(vars(!!sym(response), Region, Country)) %>%
+    summarise(perc = n()) %>% #count each response categories
+    group_by(Country, Region) %>%
+    mutate(n = perc, perc = perc / sum(perc) * 100) %>% #calculate percetage oach response category
+    mutate(perc = case_when(!!sym(response) == "No" ~ perc * -1, TRUE ~ perc)) %>% #assign negative value tote a butterfly plot
+    ungroup()
+  
+  # Create the plot and store it in an object
+  plot <- ggplot(d_filtered, aes(x = Country, color = !!sym(response))) + 
+#assign a color to your response type and axis  and grouping factor
+    geom_linerange(aes(ymin = ifelse(!!sym(response) == "No", perc, 0 + 10), 
+# create a line plot where is response is "no", then the percentage is +10 (this is to create space in the middle of the plot for the country group)
+                      ymax = ifelse(!!sym(response) == "Yes", perc, 0 - 10)),
+# create a line plot where is response is "yes", then the percentage is -10 (this is to create space in the middle of the plot for the country group)
+                   size = 5.5) + # make line thick so that it seems a bar chart
+    geom_label(aes(x = Country, y = 0, label = Country),   
+               inherit.aes = F, size = 4.5,
+               label.padding = unit(0.0, "lines"), label.size = 0, label.r = unit(0.0, "lines"),
+               position = position_dodge(width = 2)) +
+    scale_y_continuous(breaks = c(c(-90, -65, -40, -20, 0) + -10, c(0, 20, 40, 65, 90) + 10)) +
+# set teh intervals to the y axis (these are adjusted for the fact that we applied +/- 10 on the linerange
+    facet_wrap(~Region, ncol = 4, scales = "free_y") +
+# facet by region with 4 columns
+    coord_flip() + # flip coordinate to have the butterfly effect chart
+    labs(title = paste0(response), x = "Country", y = "Percentage (%)") +
+# for each response, add the title that is equivalent to the header of the response
+    scale_color_manual(values = c("#08306B", "#6BAED6")) +
+    theme_classic() +
+    theme(plot.title = element_text(face = "bold.italic", size = 10),
+          strip.text = element_text(size = 12, face = "bold"),
+          text = element_text(size = 12),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          panel.spacing = unit(2, "lines"))
+  
+  # Save the plot
+  ggsave(paste0("Section2_", response, ".png"), plot = plot, width = 20, height = 5.5, units = "cm", dpi = 300, scale = 1.75)
+# save each plot to havce the title of the response after specifying the "Section" by wich it belongs. The output will be like "Section2_Q1.png"
+} 
+
+# EXPLANATION ON THE SYM() FUNCTION
+The name of any R object is usually a symbol. Symbols have mode "name", storage mode "symbol", and type "symbol". They can be coerced to and from character strings using as.character and as.name.
+A ‘name’ (also known as a ‘symbol’) is a way to refer to R objects by name (rather than the value of the object, if any, bound to that name).
+rlang::sym() is creating a symbol from a string, it's almost the same as base::as.symbol() (tiny differences irrelevant to this answer), itself an alias for base::as.name() 
+Because Symbols are a kind of defused expression, The operator "⁠!!⁠" can be used. It injects a value or expression inside another expression. In other words, it modifies a piece of code before R evaluates it.
+There are two main cases for injection: 1) You can inject constant values to work around issues of scoping ambiguity, 2) and you can inject defused expressions like symbolised column names.
+!! unquotes this symbol, effectively substituting it with the actual variable name Variable in your code.
+When you pass "x" directly, dplyr will interpret it as a literal string, not as a column name. The !!sym("x") combination ensures that the string is correctly interpreted as a variable name.
