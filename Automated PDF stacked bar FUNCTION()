@@ -1,0 +1,34 @@
+#Refactored Code as a Function:
+# columns = 1:10 is to select which columns you want to apply the function to in your dataframe
+generate_plots <- function(data, columns = 1:10, group_var, output_file = "output_plots.pdf") {
+  # Load necessary libraries
+  library(purrr)
+  library(tidyverse)
+
+  # Create a PDF file to save the plots
+  pdf(file = paste0(output_file))
+  
+  # Loop over the selected columns
+  for (i in names(data)[columns]) {
+    # Remove NA values from the current column
+    data_clean <- data %>% drop_na(all_of(i))
+    
+    # Generate the plot
+    plot <- ggplot(data_clean, aes(x = .data[[i]], fill = {{group_var}}, na.rm = TRUE)) + 
+      geom_bar(color = "black") +
+      scale_y_continuous(breaks = seq(0, 50, by = 1)) +
+      scale_fill_brewer(palette = "Greens") +
+      scale_x_discrete(labels = ~ str_wrap(as.character(.x), 10)) +
+      labs(x = paste("", i), y = "Number of respondents") +
+      ggtitle(str_wrap(i)) +
+      theme(plot.title = element_text(size = 10, vjust = 1),
+            panel.background = element_blank(),
+            axis.line = element_line(colour = "black"))
+    
+    # Print the plot to the PDF
+    print(plot)
+  }
+  
+  # Close the PDF device
+  dev.off()
+}
