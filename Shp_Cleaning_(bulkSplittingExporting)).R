@@ -78,6 +78,7 @@ for (i in unique(nw_lines$title)) {
   # create a new dataframe 
   eval(parse(text=command))
   #that has the bname equivalent to the string in the title
+  # parse() returns an expression and eval() evaluates the expression
 }
 
 # lets rename not to cretae confusion by overwriting
