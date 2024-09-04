@@ -184,3 +184,34 @@ for (i in 1:length(obj)) {
     sf::st_write(get(obj[i]), fname)
   }
 }
+
+############################################################
+Let's break down the code step by step:
+
+1. for (i in unique(bd_polygons$title)) {
+Purpose: This initiates a for loop that will iterate over each unique value in the title column of the bd_polygons data frame.
+Explanation:
+unique(bd_polygons$title) returns a vector containing all the unique values in the title column.
+for (i in ...) sets up a loop where i will take on each of these unique values one at a time.
+2. command <- paste0(i, "<-subset(bd_polygons, title=='", i, "')")
+Purpose: Constructs a string that represents an R command.
+Explanation:
+paste0() is used to concatenate strings without any spaces.
+i is the current unique value of the title column in this iteration.
+The resulting string is a command that looks like this: "value <- subset(bd_polygons, title=='value')" where value is replaced by the current i.
+Example: If i is "Park", the command string would be "Park <- subset(bd_polygons, title=='Park')".
+3. eval(parse(text=command))
+Purpose: Executes the command created in the previous step as if it were an R script.
+Explanation:
+parse(text=command) converts the string stored in command into an R expression.
+eval() then evaluates (executes) this expression as if you typed it directly in the R console.
+Result: This creates a new data frame with the name equivalent to the current value of i and stores the subset of bd_polygons where the title column matches i.
+Example: For i = "Park", the line "Park <- subset(bd_polygons, title=='Park')" is executed, creating a new data frame named Park containing only rows where the title is "Park".
+4. }
+Purpose: Ends the for loop.
+Explanation: This bracket marks the end of the code block that is repeated for each unique value in bd_polygons$title.
+Summary of What the Code Does:
+The code loops over each unique value in the title column of the bd_polygons data frame.
+For each unique value, it constructs a command to create a new data frame containing only the rows from bd_polygons where the title matches that value.
+It then evaluates this command, effectively creating a series of new data frames, each named after a unique value in the title column and containing only the corresponding subset of data.
+This is a way to dynamically create multiple data frames from a single data frame based on the values in one of its columns.
